@@ -14,7 +14,7 @@ export class DocxToMarkdown implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'DOCX → Markdown',
 		name: 'docxToMarkdown',
-		icon: 'file:markdown.svg',
+		icon: 'file:docx.svg',
 		group: ['transform'],
 		version: 1,
 		description: 'Convert a .docx document to Markdown',
@@ -90,8 +90,14 @@ export class DocxToMarkdown implements INodeType {
 			const markdownField = this.getNodeParameter('markdownField', i) as string;
 			const includeHtml = this.getNodeParameter('includeHtml', i) as boolean;
 			const preserveStructure = this.getNodeParameter('preserveStructure', i) as boolean;
-			const outputBinaryProperty = this.getNodeParameter('outputBinaryProperty', i) as string;
-			const outputFilename = this.getNodeParameter('outputFilename', i) as string;
+
+			// Only get binary output parameters if outputMode is 'binary'
+			let outputBinaryProperty: string | undefined;
+			let outputFilename: string | undefined;
+			if (outputMode === 'binary') {
+				outputBinaryProperty = this.getNodeParameter('outputBinaryProperty', i) as string;
+				outputFilename = this.getNodeParameter('outputFilename', i) as string;
+			}
 
 			const item = items[i];
 
@@ -182,7 +188,7 @@ export class DocxToMarkdown implements INodeType {
 				returnData.push({
 					json,
 					binary: {
-						[outputBinaryProperty]: binary,
+						[outputBinaryProperty!]: binary,
 					},
 				});
 			}
