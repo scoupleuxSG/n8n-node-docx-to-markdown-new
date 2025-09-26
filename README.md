@@ -173,8 +173,6 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 [MIT](LICENSE.md) © 2025 Stephane Coupleux
 
 ## Support
-
-- 📧 Email: stephane.coupleux@gmail.com
 - 🐛 Issues: [GitHub Issues](https://github.com/scoupleuxSG/n8n-node-docx-to-markdown-new/issues)
 - 📖 n8n Community: [n8n Community Forum](https://community.n8n.io/)
 
