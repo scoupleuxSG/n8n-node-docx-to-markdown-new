@@ -44,9 +44,9 @@ export class HtmlToMarkdown implements INodeType {
 				displayName: 'Text Property',
 				name: 'textPropertyName',
 				type: 'string',
-				default: 'html',
+				default: 'body',
 				displayOptions: { show: { source: ['text'] } },
-				description: 'The name of the input JSON property containing raw HTML',
+				description: 'The name of the input JSON property containing raw HTML (e.g., "body" for email data)',
 			},
 			{
 				displayName: 'Output Mode',
@@ -104,6 +104,83 @@ export class HtmlToMarkdown implements INodeType {
 		],
 	};
 
+	/**
+	 * Determines if the given string is HTML content (from an expression) 
+	 * vs a property name to look up in the JSON
+	 */
+	private static isHtmlContent(textPropertyName: string, jsonData: IDataObject): boolean {
+		// Must be a string
+		if (typeof textPropertyName !== 'string') {
+			return false;
+		}
+
+		// If it's very short (less than 10 chars), it's likely a property name
+		if (textPropertyName.length < 10) {
+			return false;
+		}
+
+		// If it contains HTML tags, it's likely HTML content
+		const hasHtmlTags = /<[^>]+>/.test(textPropertyName);
+		
+		// If it has HTML tags, check additional criteria to be more confident
+		if (hasHtmlTags) {
+			// Check if it looks like a complete HTML document or fragment
+			const hasCommonHtmlElements = /<(html|head|body|div|p|span|table|ul|ol|li|h[1-6]|a|img|br|hr)/i.test(textPropertyName);
+			
+			// Check if it has proper HTML structure (opening and closing tags)
+			const hasProperStructure = /<[^>]+>.*<\/[^>]+>/.test(textPropertyName);
+			
+			// If it has HTML tags AND (common elements OR proper structure), it's HTML content
+			if (hasCommonHtmlElements || hasProperStructure) {
+				return true;
+			}
+		}
+
+		// Additional check: if it contains HTML entities or common HTML patterns
+		const hasHtmlEntities = /&[a-zA-Z0-9#]+;/.test(textPropertyName);
+		const hasHtmlAttributes = /=\s*["'][^"']*["']/.test(textPropertyName);
+		
+		if (hasHtmlEntities || hasHtmlAttributes) {
+			return true;
+		}
+
+		// If it doesn't look like HTML, check if it's a valid property name
+		// Property names are typically short, don't contain HTML, and exist in the JSON
+		const isShortPropertyName = textPropertyName.length < 50;
+		const isSimplePropertyName = /^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(textPropertyName);
+		const existsInJson = jsonData && typeof jsonData === 'object' && textPropertyName in jsonData;
+		
+		// If it looks like a simple property name and exists in JSON, it's probably a property name
+		if (isShortPropertyName && isSimplePropertyName && existsInJson) {
+			return false;
+		}
+
+		// Default: if it's long and contains HTML-like content, treat as HTML
+		return textPropertyName.length > 30 && (hasHtmlTags || hasHtmlEntities);
+	}
+
+	/**
+	 * Gets a nested property from an object using dot notation
+	 * e.g., "body.content" -> obj.body.content
+	 */
+	private static getNestedProperty(obj: any, path: string): any {
+		if (!obj || typeof obj !== 'object') {
+			return undefined;
+		}
+		
+		const keys = path.split('.');
+		let current = obj;
+		
+		for (const key of keys) {
+			if (current === null || current === undefined || typeof current !== 'object') {
+				return undefined;
+			}
+			current = current[key];
+		}
+		
+		return current;
+	}
+
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
@@ -139,46 +216,72 @@ export class HtmlToMarkdown implements INodeType {
 					);
 				}
 				
-				const availableProperties = Object.keys(item.json);
-				let jsonValue = item.json[textPropertyName];
-				let actualPropertyUsed = textPropertyName;
+				// Check if textPropertyName is already evaluated HTML content (from expressions like $json.body.content)
+				// vs a property name to look up in the JSON
+				let actualPropertyUsed: string;
 				
-				// Auto-detection: if the specified property doesn't exist, try common alternatives
-				if (jsonValue === undefined || jsonValue === null) {
-					const commonProperties = ['html', 'content', 'body', 'text', 'data'];
-					const foundProperty = commonProperties.find(prop => 
-						item.json[prop] !== undefined && 
-						item.json[prop] !== null && 
-						typeof item.json[prop] === 'string'
-					);
+				// More robust detection: check if it looks like HTML content
+				const looksLikeHtml = HtmlToMarkdown.isHtmlContent(textPropertyName, item.json);
+				
+				if (looksLikeHtml) {
+					// The parameter is already evaluated HTML content
+					html = textPropertyName;
+					actualPropertyUsed = 'evaluated expression';
+				} else {
+					// The parameter is a property name, look it up in the JSON
+					const availableProperties = Object.keys(item.json);
+					let jsonValue = HtmlToMarkdown.getNestedProperty(item.json, textPropertyName);
+					actualPropertyUsed = textPropertyName;
 					
-					if (foundProperty) {
-						jsonValue = item.json[foundProperty];
-						actualPropertyUsed = foundProperty;
+					// Auto-detection: if the specified property doesn't exist, try common alternatives
+					if (jsonValue === undefined || jsonValue === null) {
+						const commonProperties = ['html', 'content', 'body', 'text', 'data', 'body.content', 'body.html'];
+						const foundProperty = commonProperties.find(prop => {
+							const value = HtmlToMarkdown.getNestedProperty(item.json, prop);
+							return value !== undefined && 
+								value !== null && 
+								typeof value === 'string' &&
+								value.trim().length > 0;
+						});
+						
+						if (foundProperty) {
+							jsonValue = HtmlToMarkdown.getNestedProperty(item.json, foundProperty);
+							actualPropertyUsed = foundProperty;
+						}
 					}
+					
+					if (jsonValue === undefined || jsonValue === null) {
+						// Check if this looks like email data and provide specific guidance
+						const isEmailData = availableProperties.some(prop => 
+							['body', 'subject', 'sender', 'from', 'toRecipients', 'receivedDateTime'].includes(prop)
+						);
+						
+						const suggestion = isEmailData 
+							? '. For email data, try using "body.content", "body.html", or "body" as the Text Property.'
+							: '. Try using one of the common properties: html, content, body, text, data, body.content, or body.html.';
+						
+						throw new NodeOperationError(
+							this.getNode(),
+							`Item ${i}: Text property "${textPropertyName}" not found${suggestion} Available properties: ${availableProperties.join(', ')}`,
+							{ itemIndex: i },
+						);
+					}
+					
+					if (typeof jsonValue !== 'string') {
+						throw new NodeOperationError(
+							this.getNode(),
+							`Item ${i}: Text property "${actualPropertyUsed}" must be a string, got ${typeof jsonValue}`,
+							{ itemIndex: i },
+						);
+					}
+					
+					html = jsonValue;
 				}
 				
-				if (jsonValue === undefined || jsonValue === null) {
-					throw new NodeOperationError(
-						this.getNode(),
-						`Item ${i}: Text property "${textPropertyName}" not found. Available properties: ${availableProperties.join(', ')}`,
-						{ itemIndex: i },
-					);
-				}
-				
-				if (typeof jsonValue !== 'string') {
-					throw new NodeOperationError(
-						this.getNode(),
-						`Item ${i}: Text property "${actualPropertyUsed}" must be a string, got ${typeof jsonValue}`,
-						{ itemIndex: i },
-					);
-				}
-				
-				html = jsonValue;
 				if (!html.trim()) {
 					throw new NodeOperationError(
 						this.getNode(),
-						`Item ${i}: Text property "${actualPropertyUsed}" is empty`,
+						`Item ${i}: HTML content is empty`,
 						{ itemIndex: i },
 					);
 				}
