@@ -1,48 +1,186 @@
-![Banner image](https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png)
+# n8n-nodes-docx-to-markdown
 
-# n8n-nodes-starter
+A professional n8n community node package that provides powerful document conversion capabilities for your workflows.
 
-This repo contains example nodes to help you get started building your own custom integrations for [n8n](https://n8n.io). It includes the node linter and other dependencies.
+This package enables seamless conversion of DOCX documents and HTML content to clean, well-formatted Markdown within your n8n automation workflows. Perfect for content processing, documentation workflows, and data transformation pipelines.
 
-To make your custom node available to the community, you must create it as an npm package, and [submit it to the npm registry](https://docs.npmjs.com/packages-and-modules/contributing-packages-to-the-registry).
+[n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform.
 
-If you would like your node to be available on n8n cloud you can also [submit your node for verification](https://docs.n8n.io/integrations/creating-nodes/deploy/submit-community-nodes/).
+[![npm version](https://badge.fury.io/js/n8n-nodes-docx-to-markdown.svg)](https://badge.fury.io/js/n8n-nodes-docx-to-markdown)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Prerequisites
+## Features
 
-You need the following installed on your development machine:
+✅ **DOCX to Markdown Conversion** - Convert Microsoft Word documents to clean Markdown  
+✅ **HTML to Markdown Conversion** - Transform HTML content into well-formatted Markdown  
+✅ **Multiple Output Modes** - JSON field output or binary file output  
+✅ **Structure Preservation** - Maintains headings, lists, and table formatting  
+✅ **Image Handling** - Converts embedded images to base64 data URIs  
+✅ **Flexible Input Sources** - Support for binary files and text fields  
+✅ **Content Sanitization** - Built-in HTML sanitization for security  
+✅ **Professional Error Handling** - Comprehensive validation and error reporting
 
-* [git](https://git-scm.com/downloads)
-* Node.js and npm. Minimum version Node 20. You can find instructions on how to install both using nvm (Node Version Manager) for Linux, Mac, and WSL [here](https://github.com/nvm-sh/nvm). For Windows users, refer to Microsoft's guide to [Install NodeJS on Windows](https://docs.microsoft.com/en-us/windows/dev-environment/javascript/nodejs-on-windows).
-* Install n8n with:
-  ```
-  npm install n8n -g
-  ```
-* Recommended: follow n8n's guide to [set up your development environment](https://docs.n8n.io/integrations/creating-nodes/build/node-development-environment/).
+## Installation
 
-## Using this starter
+Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/) in the n8n community nodes documentation.
 
-These are the basic steps for working with the starter. For detailed guidance on creating and publishing nodes, refer to the [documentation](https://docs.n8n.io/integrations/creating-nodes/).
+### Quick Install
 
-1. [Generate a new repository](https://github.com/n8n-io/n8n-nodes-starter/generate) from this template repository.
-2. Clone your new repo:
-   ```
-   git clone https://github.com/<your organization>/<your-repo-name>.git
-   ```
-3. Run `npm i` to install dependencies.
-4. Open the project in your editor.
-5. Browse the examples in `/nodes` and `/credentials`. Modify the examples, or replace them with your own nodes.
-6. Update the `package.json` to match your details.
-7. Run `npm run lint` to check for errors or `npm run lintfix` to automatically fix errors when possible.
-8. Test your node locally. Refer to [Run your node locally](https://docs.n8n.io/integrations/creating-nodes/test/run-node-locally/) for guidance.
-9. Replace this README with documentation for your node. Use the [README_TEMPLATE](README_TEMPLATE.md) to get started.
-10. Update the LICENSE file to use your details.
-11. [Publish](https://docs.npmjs.com/packages-and-modules/contributing-packages-to-the-registry) your package to npm.
+```bash
+npm install n8n-nodes-docx-to-markdown
+```
 
-## More information
+Or install directly in n8n:
+1. Go to **Settings** → **Community Nodes**
+2. Enter: `n8n-nodes-docx-to-markdown`
+3. Click **Install**
 
-Refer to our [documentation on creating nodes](https://docs.n8n.io/integrations/creating-nodes/) for detailed information on building your own nodes.
+## Nodes
+
+### DOCX → Markdown
+
+Convert Microsoft Word (.docx) documents to Markdown format.
+
+**Key Features:**
+- Support for complex document structures (headings, lists, tables)
+- Image conversion with base64 encoding
+- Flexible output options (JSON field or binary file)
+- Document metadata preservation
+- Conversion warnings and error reporting
+
+**Configuration Options:**
+- **Binary Property**: Source property containing the DOCX file
+- **Output Mode**: Choose between JSON field or binary file output
+- **Preserve Structure**: Maintain document formatting and structure
+- **Include HTML**: Optionally include HTML version in output
+
+### HTML → Markdown
+
+Convert HTML content to clean, readable Markdown.
+
+**Key Features:**
+- Support for binary HTML files or text fields
+- Advanced content sanitization
+- Customizable conversion options
+- Domain whitelisting for links and images
+- Content length limitations for performance
+
+**Configuration Options:**
+- **Source**: Choose between binary file or text field input
+- **Preserve Tables**: Maintain HTML table formatting
+- **Include Image Alt Text**: Extract alt text from images
+- **Content Sanitization**: Clean HTML before conversion
+- **Domain Filtering**: Whitelist trusted domains
+
+## Compatibility
+
+- **Minimum n8n version**: 1.0.0
+- **Node.js version**: ≥20.15
+- **Tested with**: n8n 1.112.1+
+
+## Usage Examples
+
+### Basic DOCX Conversion
+
+1. Add a **DOCX → Markdown** node to your workflow
+2. Connect it to a node that provides DOCX files (e.g., HTTP Request, Google Drive)
+3. Configure the binary property name (default: "data")
+4. Choose output mode (JSON field or binary file)
+5. Execute the workflow
+
+### HTML Processing Pipeline
+
+1. Use **HTTP Request** to fetch HTML content
+2. Add **HTML → Markdown** node
+3. Set source to "Text Field" and specify the JSON property
+4. Configure sanitization options as needed
+5. Process the converted Markdown in subsequent nodes
+
+### Advanced Document Processing
+
+```json
+{
+  "nodes": [
+    {
+      "name": "Get DOCX",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://example.com/document.docx",
+        "responseFormat": "file"
+      }
+    },
+    {
+      "name": "Convert to Markdown",
+      "type": "n8n-nodes-docx-to-markdown.docxToMarkdown",
+      "parameters": {
+        "outputMode": "json",
+        "markdownField": "content",
+        "includeHtml": true,
+        "preserveStructure": true
+      }
+    }
+  ]
+}
+```
+
+## Development
+
+### Prerequisites
+
+- Node.js ≥20.15
+- npm or yarn
+- n8n installed globally
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/scoupleuxSG/n8n-node-docx-to-markdown-new.git
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Run linting
+npm run lint
+
+# Auto-fix linting issues
+npm run lintfix
+```
+
+### Testing Locally
+
+1. Build the project: `npm run build`
+2. Link the package: `npm link`
+3. In your n8n installation: `npm link n8n-nodes-docx-to-markdown`
+4. Restart n8n to load the nodes
+
+## Dependencies
+
+- **mammoth**: DOCX to HTML conversion
+- **turndown**: HTML to Markdown conversion
+- **jsdom**: HTML parsing and manipulation
+- **sanitize-html**: HTML content sanitization
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
 
-[MIT](https://github.com/n8n-io/n8n-nodes-starter/blob/master/LICENSE.md)
+[MIT](LICENSE.md) © 2025 Stephane Coupleux
+
+## Support
+
+- 📧 Email: stephane.coupleux@gmail.com
+- 🐛 Issues: [GitHub Issues](https://github.com/scoupleuxSG/n8n-node-docx-to-markdown-new/issues)
+- 📖 n8n Community: [n8n Community Forum](https://community.n8n.io/)
+
+## Resources
+
+- [n8n Community Nodes Documentation](https://docs.n8n.io/integrations/#community-nodes)
+- [n8n Node Development Guide](https://docs.n8n.io/integrations/creating-nodes/)
+- [Mammoth.js Documentation](https://github.com/mwilliamson/mammoth.js)
+- [Turndown Documentation](https://github.com/mixmark-io/turndown)

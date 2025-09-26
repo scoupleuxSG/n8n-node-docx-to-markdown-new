@@ -34,28 +34,33 @@
     "n8nNodesApiVersion": 1,
     "credentials": [],
     "nodes": [
-      "dist/nodes/DocxToMarkdown/DocxToMarkdown.node.js"
+      "dist/nodes/DocxToMarkdown/DocxToMarkdown.node.js",
+      "dist/nodes/HtmlToMarkdown/HtmlToMarkdown.node.js"
     ]
   },
   "dependencies": {
-    "mammoth": "^1.10.0",
-    "turndown": "^7.2.1"
+    "jsdom": "^27.0.0",
+    "mammoth": "1.11.0",
+    "sanitize-html": "^2.17.0",
+    "turndown": "7.2.1"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.1",
-    "@eslint/js": "^9.35.0",
-    "@types/node": "^24.3.1",
+    "@eslint/eslintrc": "3.3.1",
+    "@eslint/js": "9.36.0",
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "24.5.2",
+    "@types/sanitize-html": "^2.16.0",
     "@types/turndown": "^5.0.5",
-    "@typescript-eslint/parser": "~8.42.0",
-    "eslint": "^9.35.0",
-    "eslint-plugin-n8n-nodes-base": "^1.16.3",
-    "globals": "^16.3.0",
-    "gulp": "^5.0.1",
-    "prettier": "^3.6.2",
-    "typescript": "^5.9.2"
+    "@typescript-eslint/parser": "8.44.1",
+    "eslint": "9.36.0",
+    "eslint-plugin-n8n-nodes-base": "1.16.3",
+    "globals": "16.4.0",
+    "gulp": "5.0.1",
+    "prettier": "3.6.2",
+    "typescript": "5.9.2"
   },
   "peerDependencies": {
-    "n8n-core": "^1.109.0",
-    "n8n-workflow": "1.107.0"
+    "n8n-core": "1.112.1",
+    "n8n-workflow": "1.110.0"
   }
 }
