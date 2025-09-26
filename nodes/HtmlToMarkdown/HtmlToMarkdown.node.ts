@@ -113,12 +113,12 @@ export class HtmlToMarkdown implements INodeType {
 			const outputMode = this.getNodeParameter('outputMode', i) as 'json' | 'binary';
 			const markdownField = this.getNodeParameter('markdownField', i) as string;
 
-			let html: string | undefined;
+			let html: string;
 
 			if (source === 'binary') {
 				const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
 				const item = items[i];
-				if (!item.binary || !item.binary[binaryPropertyName]) {
+				if (!item.binary?.[binaryPropertyName]) {
 					throw new NodeOperationError(
 						this.getNode(),
 						`Item ${i}: Binary property "${binaryPropertyName}" not found`,
@@ -129,11 +129,56 @@ export class HtmlToMarkdown implements INodeType {
 				html = buffer.toString('utf-8');
 			} else {
 				const textPropertyName = this.getNodeParameter('textPropertyName', i) as string;
-				html = items[i].json[textPropertyName] as string;
-				if (!html) {
+				const item = items[i];
+				
+				if (!item.json || typeof item.json !== 'object') {
 					throw new NodeOperationError(
 						this.getNode(),
-						`Item ${i}: Text property "${textPropertyName}" not found or empty`,
+						`Item ${i}: No JSON data available`,
+						{ itemIndex: i },
+					);
+				}
+				
+				const availableProperties = Object.keys(item.json);
+				let jsonValue = item.json[textPropertyName];
+				let actualPropertyUsed = textPropertyName;
+				
+				// Auto-detection: if the specified property doesn't exist, try common alternatives
+				if (jsonValue === undefined || jsonValue === null) {
+					const commonProperties = ['html', 'content', 'body', 'text', 'data'];
+					const foundProperty = commonProperties.find(prop => 
+						item.json[prop] !== undefined && 
+						item.json[prop] !== null && 
+						typeof item.json[prop] === 'string'
+					);
+					
+					if (foundProperty) {
+						jsonValue = item.json[foundProperty];
+						actualPropertyUsed = foundProperty;
+					}
+				}
+				
+				if (jsonValue === undefined || jsonValue === null) {
+					throw new NodeOperationError(
+						this.getNode(),
+						`Item ${i}: Text property "${textPropertyName}" not found. Available properties: ${availableProperties.join(', ')}`,
+						{ itemIndex: i },
+					);
+				}
+				
+				if (typeof jsonValue !== 'string') {
+					throw new NodeOperationError(
+						this.getNode(),
+						`Item ${i}: Text property "${actualPropertyUsed}" must be a string, got ${typeof jsonValue}`,
+						{ itemIndex: i },
+					);
+				}
+				
+				html = jsonValue;
+				if (!html.trim()) {
+					throw new NodeOperationError(
+						this.getNode(),
+						`Item ${i}: Text property "${actualPropertyUsed}" is empty`,
 						{ itemIndex: i },
 					);
 				}
@@ -144,14 +189,21 @@ export class HtmlToMarkdown implements INodeType {
 			const maxLength = this.getNodeParameter('maxLength', i) as number;
 			const preserveLineBreaks = this.getNodeParameter('preserveLineBreaks', i) as boolean;
 
-			// Convert
-			const markdown = htmlToMarkdown(html, {
+		// Convert with error handling
+		let markdown: string;
+		try {
+			markdown = htmlToMarkdown(html, {
 				preserveTables,
 				maxLength,
 				preserveLineBreaks,
 			});
-
-			if (outputMode === 'json') {
+		} catch (error) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`Item ${i}: Failed to convert HTML to Markdown: ${error instanceof Error ? error.message : String(error)}`,
+				{ itemIndex: i },
+			);
+		}			if (outputMode === 'json') {
 				const json: IDataObject = {
 					...items[i].json,
 					[markdownField]: markdown,

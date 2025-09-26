@@ -42,6 +42,12 @@ export function htmlToMarkdown(
     return '';
   }
 
+  // Clean HTML to prevent JSDOM issues
+  html = html.trim();
+  if (html === '') {
+    return '';
+  }
+
   // Early return for very long content
   if (maxLength > 0 && html.length > maxLength * 10) {
     html = html.substring(0, maxLength * 10);
@@ -100,23 +106,41 @@ export function htmlToMarkdown(
     }
   });
 
-  // 2. Convert sanitized HTML into a DOM
-  const dom = new JSDOM(sanitized);
-  const document = dom.window.document;
+  // 2. Convert sanitized HTML into a DOM with error handling
+  let document: Document;
+  let domWindow: any;
+  try {
+    const dom = new JSDOM(sanitized);
+    document = dom.window.document;
+    domWindow = dom.window;
+  } catch (error) {
+    // Fallback: try wrapping in a basic HTML structure
+    console.warn('Initial JSDOM parsing failed, trying fallback:', error instanceof Error ? error.message : String(error));
+    const wrappedHtml = `<html><body>${sanitized}</body></html>`;
+    try {
+      const dom = new JSDOM(wrappedHtml);
+      document = dom.window.document;
+      domWindow = dom.window;
+    } catch (fallbackError) {
+      // If both attempts fail, return empty string
+      console.error('Both JSDOM parsing attempts failed:', fallbackError instanceof Error ? fallbackError.message : String(fallbackError));
+      return '';
+    }
+  }
 
   // Pre-processing: clean up empty elements and normalize whitespace
   const walker = document.createTreeWalker(
     document.body,
-    dom.window.NodeFilter.SHOW_ELEMENT,
+    domWindow.NodeFilter.SHOW_ELEMENT,
     {
-      acceptNode: (node) => {
+      acceptNode: (node: any) => {
         const element = node as Element;
         // Remove empty paragraphs and divs
         if (['p', 'div'].includes(element.tagName.toLowerCase()) && 
             !element.textContent?.trim()) {
-          return dom.window.NodeFilter.FILTER_REJECT;
+          return domWindow.NodeFilter.FILTER_REJECT;
         }
-        return dom.window.NodeFilter.FILTER_ACCEPT;
+        return domWindow.NodeFilter.FILTER_ACCEPT;
       }
     }
   );
