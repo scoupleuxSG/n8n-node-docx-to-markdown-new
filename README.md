@@ -56,21 +56,28 @@ Convert Microsoft Word (.docx) documents to Markdown format.
 
 ### HTML → Markdown
 
-Convert HTML content to clean, readable Markdown.
+Convert HTML content to clean, readable Markdown with flexible input and output options.
 
 **Key Features:**
-- Support for binary HTML files or text fields
-- Advanced content sanitization
-- Customizable conversion options
-- Domain whitelisting for links and images
-- Content length limitations for performance
+- **Dual Input Modes**: Support for binary HTML files or direct text input
+- **Conversion Modes**: Default settings or fully customizable options
+- **Advanced Sanitization**: Built-in HTML cleaning and security filtering
+- **Flexible Output**: JSON field output or binary .md file generation
+- **Content Control**: Length limits, domain filtering, and structure preservation
 
 **Configuration Options:**
-- **Source**: Choose between binary file or text field input
-- **Preserve Tables**: Maintain HTML table formatting
-- **Include Image Alt Text**: Extract alt text from images
-- **Content Sanitization**: Clean HTML before conversion
-- **Domain Filtering**: Whitelist trusted domains
+- **Input Mode**: Choose between text field or binary file input
+- **Conversion Mode**: 
+  - **Default Settings**: Optimized defaults for any HTML content
+  - **Custom Options**: Full control over conversion parameters
+- **Custom Options** (when enabled):
+  - **Preserve Tables**: Maintain HTML table formatting in Markdown
+  - **Include Image Alt Text**: Extract and include image alt attributes
+  - **Preserve Line Breaks**: Keep original line break formatting
+  - **Max Length**: Set content length limits (0 = no limit)
+  - **Allowed Domains**: Whitelist trusted domains for links and images
+- **Output Mode**: JSON field or binary .md file output
+- **Include Original HTML**: Optionally preserve original HTML in JSON output
 
 ## Compatibility
 
@@ -90,14 +97,24 @@ Convert HTML content to clean, readable Markdown.
 
 ### HTML Processing Pipeline
 
+**Text Input Example:**
 1. Use **HTTP Request** to fetch HTML content
 2. Add **HTML → Markdown** node
-3. Set source to "Text Field" and specify the JSON property
-4. Configure sanitization options as needed
-5. Process the converted Markdown in subsequent nodes
+3. Set **Input Mode** to "Text (HTML String)"
+4. Choose **Conversion Mode** (Default Settings or Custom Options)
+5. Configure output mode (JSON field or binary file)
+6. Process the converted Markdown in subsequent nodes
+
+**Binary File Example:**
+1. Use **HTTP Request** with `responseFormat: "file"` to download HTML file
+2. Add **HTML → Markdown** node
+3. Set **Input Mode** to "Binary (HTML File)"
+4. Specify the binary property name (default: "data")
+5. Configure conversion and output options as needed
 
 ### Advanced Document Processing
 
+**DOCX to Markdown Example:**
 ```json
 {
   "nodes": [
@@ -110,13 +127,43 @@ Convert HTML content to clean, readable Markdown.
       }
     },
     {
-      "name": "Convert to Markdown",
+      "name": "Convert DOCX to Markdown",
       "type": "n8n-nodes-docx-to-markdown.docxToMarkdown",
       "parameters": {
         "outputMode": "json",
         "markdownField": "content",
         "includeHtml": true,
         "preserveStructure": true
+      }
+    }
+  ]
+}
+```
+
+**HTML to Markdown Example:**
+```json
+{
+  "nodes": [
+    {
+      "name": "Get HTML",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://example.com/page.html",
+        "responseFormat": "file"
+      }
+    },
+    {
+      "name": "Convert HTML to Markdown",
+      "type": "n8n-nodes-docx-to-markdown.htmlToMarkdown",
+      "parameters": {
+        "inputMode": "binary",
+        "binaryPropertyName": "data",
+        "conversionMode": "custom",
+        "preserveTables": true,
+        "includeImageAlt": true,
+        "maxLength": 5000,
+        "outputMode": "json",
+        "markdownField": "markdown"
       }
     }
   ]
