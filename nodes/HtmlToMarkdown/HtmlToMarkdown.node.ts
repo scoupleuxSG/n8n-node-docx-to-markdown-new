@@ -154,13 +154,17 @@ export class HtmlToMarkdown implements INodeType {
 			const inputMode = this.getNodeParameter('inputMode', i) as 'text' | 'binary';
 			const conversionMode = this.getNodeParameter('conversionMode', i) as 'custom' | 'default';
 			const outputMode = this.getNodeParameter('outputMode', i) as 'json' | 'binary';
-			const markdownField = this.getNodeParameter('markdownField', i) as string;
-			const includeHtml = this.getNodeParameter('includeHtml', i) as boolean;
 
-			// Only get binary output parameters if outputMode is 'binary'
+			// Only get parameters that are available based on output mode
+			let markdownField: string | undefined;
+			let includeHtml: boolean | undefined;
 			let outputBinaryProperty: string | undefined;
 			let outputFilename: string | undefined;
-			if (outputMode === 'binary') {
+
+			if (outputMode === 'json') {
+				markdownField = this.getNodeParameter('markdownField', i) as string;
+				includeHtml = this.getNodeParameter('includeHtml', i) as boolean;
+			} else {
 				outputBinaryProperty = this.getNodeParameter('outputBinaryProperty', i) as string;
 				outputFilename = this.getNodeParameter('outputFilename', i) as string;
 			}
@@ -239,7 +243,7 @@ export class HtmlToMarkdown implements INodeType {
 			if (outputMode === 'json') {
 				const json: IDataObject = {
 					...item.json,
-					[markdownField]: markdown,
+					[markdownField!]: markdown,
 					warnings,
 				};
 				if (includeHtml) {
